@@ -1,2 +1,9 @@
-# GuideBankingBot(GBB)
-Telegram bot - a guide to the demonstrative exam in banking
+# <img width="50" height="50" src="./resources/logo.jpg"> KFC_TG_BOT(KTB)
+
+## Первый запуск
+Если репозиторий с ботом был впервые загружен на ваш ПК, то перед началом разработки запустите файл <code>update.bat</code>, он сам установит виртуальное окружение и загрузит все необходимые библиотеки, после чего можете приступать к разработке.
+___
+Для запуска бота необходимо запустить файл <code>bot_run.bat</code>
+
+## Структура проекта
+<img src="./resources/structure.png">

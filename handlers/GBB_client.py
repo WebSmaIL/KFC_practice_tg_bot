@@ -1,5 +1,3 @@
-from glob import glob
-from itertools import product
 import json
 from aiogram import types, Dispatcher
 from keyboards import client_keyboard, menus_keyboard, menu_kb_1, order_keyboard_1
