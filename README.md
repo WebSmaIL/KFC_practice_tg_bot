@@ -7,3 +7,6 @@ ___
 
 ## Структура проекта
 <img src="./resources/structure.png">
+
+### Ссылка на бота в телеграмме 
+<a href="t.me/Kifas_bot">➡️<b>ТЫК!!!</b>⬅️<a>
