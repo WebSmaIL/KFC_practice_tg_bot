@@ -5,7 +5,7 @@ async def on_start(_):
     # Вывод системных сообщений
     print('Bot is working')
 
-from handlers import GBB_client
-GBB_client.client_handlers_register(dp)
+from handlers import KTB_client
+KTB_client.client_handlers_register(dp)
 
 executor.start_polling(dp, skip_updates=True, on_startup=on_start)
