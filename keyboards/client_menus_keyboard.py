@@ -1,9 +1,9 @@
 from aiogram.types import ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
 
-btn_1 = KeyboardButton('Меню 1')
-btn_2 = KeyboardButton('Меню 2')
-btn_3 = KeyboardButton('Меню 3')
-btn_4 = KeyboardButton('Меню 4')
+btn_1 = KeyboardButton('Напитки')
+btn_2 = KeyboardButton('Бургеры')
+btn_3 = KeyboardButton('Картофельные блюда')
+btn_4 = KeyboardButton('Мясные блюда')
 
 menus_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
