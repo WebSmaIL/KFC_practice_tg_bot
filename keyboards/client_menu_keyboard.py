@@ -5,7 +5,7 @@ def create_keyboard(arr):
     resize_keyboard=True
     )
     for i in arr:
-        menu_kb.insert(KeyboardButton(i[0] + ": " + str(i[1]) + " руб."))
+        menu_kb.insert(KeyboardButton(i[0]))
     menu_kb.add(KeyboardButton('Другое меню'))
     return menu_kb
 
