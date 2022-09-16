@@ -2,7 +2,7 @@ from aiogram.types import ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButt
 
 def create_keyboard(arr):
     menu_kb = ReplyKeyboardMarkup(
-    resize_keyboard=True
+    resize_keyboard=True, one_time_keyboard=True
     )
     for i in arr:
         menu_kb.insert(KeyboardButton(i[0]))

@@ -1,10 +1,11 @@
 import sqlite3
-from create_bot import cursor, conn
+from create_bot import cursor, conn, bot
 from aiogram import types, Dispatcher
 from aiogram.dispatcher.filters import Filter, Command
-from keyboards import client_keyboard, menus_keyboard, create_keyboard, order_keyboard_1, admin_keyboard
+from keyboards import client_keyboard, menus_keyboard, create_keyboard, order_keyboard_1, admin_keyboard, inline_client_keyboard
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.dispatcher import FSMContext
+
 
 
 kb_menus = {
@@ -68,8 +69,11 @@ async def order_step_2(message: types.Message, state: FSMContext):
         
         cursor.execute(f"SELECT * FROM {data['menu_type']} WHERE Name = ?", (message.text,))
         product = cursor.fetchone()
-        await message.answer("Название: " + product[1] + "\nСостав: " + str(product[4]) + "\nКкал: " + str(product[2]) + "\nСкидка: " + str(product[3]), reply_markup=inline_kb)
-        
+        await message.reply("Название: " + product[1]
+                             + "\nСостав: " + str(product[4])
+                             + "\nКкал: " + str(product[2])
+                             + "\nСкидка: " + str(product[3]), reply_markup=inline_client_keyboard)
+        await menu.next()
         # orderList = []
         # orderList.append(message.text)
         # await state.update_data(order_list=data["order_list"] + orderList)
@@ -80,24 +84,30 @@ async def order_step_2(message: types.Message, state: FSMContext):
         # await menu.next()
     
 
-async def order_step_3(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    if message.text in ['Подтвердить', 'Выйти', 'Продолжить']:
-        if message.text == 'Подтвердить':
-            strOrder = ""
-            for i in data['order_list']:
-                strOrder += i + " "
-            await message.answer(f"Вы подтвердили заказ\n\nВаш заказ: {strOrder}", reply_markup=client_keyboard)
-            await state.finish()
-        elif message.text == 'Выйти':
-            await message.answer("Вы вышли из заказа", reply_markup=client_keyboard)
-            await state.finish()
-        elif message.text == 'Продолжить':
-            await message.answer("Продолжаем", reply_markup=data["cur_menu_kb"])
-            await menu.order_step_1.set()
+async def order_step_3(callback_query: types.CallbackQuery, state: FSMContext):
+    # data = await state.get_data()
+    # await bot.answer_callback_query(callback_query.id)
+    await bot.send_message(callback_query.from_user.id, 'Вы добавили товар')
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+    # await menu.next()
+    
+    
+    # if message.text in ['Подтвердить', 'Выйти', 'Продолжить']:
+    #     if message.text == 'Подтвердить':
+    #         strOrder = ""
+    #         for i in data['order_list']:
+    #             strOrder += i + " "
+    #         await message.answer(f"Вы подтвердили заказ\n\nВаш заказ: {strOrder}", reply_markup=client_keyboard)
+    #         await state.finish()
+    #     elif message.text == 'Выйти':
+    #         await message.answer("Вы вышли из заказа", reply_markup=client_keyboard)
+    #         await state.finish()
+    #     elif message.text == 'Продолжить':
+    #         await message.answer("Продолжаем", reply_markup=data["cur_menu_kb"])
+    #         await menu.order_step_1.set()
             
-    else: 
-        await message.answer("Неопознанная команда")
+    # else: 
+    #     await message.answer("Неопознанная команда")
 
     
 def client_handlers_register(dp : Dispatcher):
@@ -108,5 +118,5 @@ def client_handlers_register(dp : Dispatcher):
     dp.register_message_handler(order_start)
     dp.register_message_handler(order_step_1, state=menu.input_order_is_start)
     dp.register_message_handler(order_step_2, state=menu.order_step_1)
-    dp.register_message_handler(order_step_3, state=menu.order_step_2)
+    dp.register_callback_query_handler(order_step_3, state=menu.order_step_2, text=['add', 'notAdd'])
     
