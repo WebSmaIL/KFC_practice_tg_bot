@@ -1,3 +1,4 @@
+import base64
 import sqlite3
 from create_bot import cursor, conn, bot
 from aiogram import types, Dispatcher
@@ -29,7 +30,7 @@ async def order_start(message: types.Message, state: FSMContext):
     if message.text == "Сделать заказ":
         await message.reply("Выберите меню:", reply_markup=menus_keyboard)
         await menu.input_order_is_start.set()
-        await state.update_data(order_list=[])
+        await state.update_data(order_list={"Drinks":[], "Burgers":[], "potato":[], "meat":[]})
 
 async def order_step_1(message: types.Message, state: FSMContext):
     # Проверка является ли сообщение одним из меню
@@ -69,45 +70,38 @@ async def order_step_2(message: types.Message, state: FSMContext):
         
         cursor.execute(f"SELECT * FROM {data['menu_type']} WHERE Name = ?", (message.text,))
         product = cursor.fetchone()
-        await message.reply("Название: " + product[1]
-                             + "\nСостав: " + str(product[4])
-                             + "\nКкал: " + str(product[2])
-                             + "\nСкидка: " + str(product[3]), reply_markup=inline_client_keyboard)
+        await state.update_data(cur_product=[data['menu_type'], product[0]])
+        with open("./IMG09142789.jpg", "rb") as bc:
+            await message.reply_photo(bc.read(), caption="Название: " + product[1]
+                                        + "\nСостав: " + str(product[4])
+                                        + "\nКкал: " + str(product[2])
+                                        + "\nСкидка: " + str(product[3]), reply_markup=inline_client_keyboard)
+        # await message.reply_photo(product[5])
+        # await message.reply("Название: " + product[1]
+        #                      + "\nСостав: " + str(product[4])
+        #                      + "\nКкал: " + str(product[2])
+        #                      + "\nСкидка: " + str(product[3]), reply_markup=inline_client_keyboard)
         await menu.next()
-        # orderList = []
-        # orderList.append(message.text)
-        # await state.update_data(order_list=data["order_list"] + orderList)
-        # strOrder = ""
-        # for i in data['order_list']:
-        #     strOrder += i + "\n"
-        # await message.answer(f"Выбрано: {strOrder}\nПодтвердить/Выйти/Продолжить?", reply_markup=order_keyboard_1)
-        # await menu.next()
     
 
 async def order_step_3(callback_query: types.CallbackQuery, state: FSMContext):
-    # data = await state.get_data()
-    # await bot.answer_callback_query(callback_query.id)
-    await bot.send_message(callback_query.from_user.id, 'Вы добавили товар')
-    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-    # await menu.next()
-    
-    
-    # if message.text in ['Подтвердить', 'Выйти', 'Продолжить']:
-    #     if message.text == 'Подтвердить':
-    #         strOrder = ""
-    #         for i in data['order_list']:
-    #             strOrder += i + " "
-    #         await message.answer(f"Вы подтвердили заказ\n\nВаш заказ: {strOrder}", reply_markup=client_keyboard)
-    #         await state.finish()
-    #     elif message.text == 'Выйти':
-    #         await message.answer("Вы вышли из заказа", reply_markup=client_keyboard)
-    #         await state.finish()
-    #     elif message.text == 'Продолжить':
-    #         await message.answer("Продолжаем", reply_markup=data["cur_menu_kb"])
-    #         await menu.order_step_1.set()
-            
-    # else: 
-    #     await message.answer("Неопознанная команда")
+    data = await state.get_data()
+    if callback_query.data == "add":
+        
+        old_order_list = data["order_list"]
+        cur_menu = data["cur_product"][0]
+        cur_product_id = data["cur_product"][1]
+        old_order_list[cur_menu].append(cur_product_id)
+        
+        await state.update_data(order_list=old_order_list)
+        print(old_order_list)
+        await bot.send_message(callback_query.from_user.id, 'Вы добавили товар', reply_markup=data["cur_menu_kb"])
+        await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+        await menu.order_step_1.set()
+    else:
+        await bot.send_message(callback_query.from_user.id, 'Как вы могли не добавить товар(((', reply_markup=data["cur_menu_kb"])
+        await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+        await menu.order_step_1.set()
 
     
 def client_handlers_register(dp : Dispatcher):
