@@ -1,19 +1,22 @@
-import base64
-import sqlite3
 from create_bot import cursor, conn, bot
 from aiogram import types, Dispatcher
 from aiogram.dispatcher.filters import Filter, Command
-from keyboards import client_keyboard, menus_keyboard, create_keyboard, order_keyboard_1, admin_keyboard, inline_client_keyboard
+from keyboards import client_keyboard, danet_kb, final_kb, menus_keyboard, create_keyboard, order_keyboard_1, admin_keyboard, inline_client_keyboard
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.dispatcher import FSMContext
+from aiogram.types import ReplyKeyboardRemove
+
+from keyboards.edit_inline_kb import create_inline_kb
 
 
 
 kb_menus = {
-    "Напитки": "Drinks",
-    "Бургеры": "Burgers",
+    "Напитки": "drinks",
+    "Бургеры": "burgers",
     "Картофельные блюда" : "potato",
-    "Мясные блюда": "meat"
+    "Мясные блюда": "meat",
+    "Десерты": "desserts",
+    "Соусы": "sauce",
 }
 
 async def command_start(message: types.Message):
@@ -24,13 +27,16 @@ class menu(StatesGroup):
     input_order_is_start = State()
     order_step_1 = State()
     order_step_2 = State()
-    order_step_3 = State()
+    order_edit = State()
+    order_edit_2 = State()
+    order_final_step = State()
+    
 
 async def order_start(message: types.Message, state: FSMContext):
     if message.text == "Сделать заказ":
         await message.reply("Выберите меню:", reply_markup=menus_keyboard)
         await menu.input_order_is_start.set()
-        await state.update_data(order_list={"Drinks":[], "Burgers":[], "potato":[], "meat":[]})
+        await state.update_data(order_list={"drinks":[], "burgers":[], "potato":[], "meat":[], "desserts": [], "sauce": []})
 
 async def order_step_1(message: types.Message, state: FSMContext):
     # Проверка является ли сообщение одним из меню
@@ -62,25 +68,21 @@ async def order_step_2(message: types.Message, state: FSMContext):
         await message.answer(f"Выберите другое меню", reply_markup=menus_keyboard)
         await menu.input_order_is_start.set()
         
-    elif message.text == "Выход": 
-        await message.answer("Вы вышли из заказа", reply_markup=client_keyboard)
-        await state.finish()
+    elif message.text == "Подтвердить": 
+        await message.answer("Вы хотите отредактировать заказ?", reply_markup=danet_kb)
+        await menu.order_edit.set()
         
     elif message.text in data["foodArr"]:
         
         cursor.execute(f"SELECT * FROM {data['menu_type']} WHERE Name = ?", (message.text,))
         product = cursor.fetchone()
         await state.update_data(cur_product=[data['menu_type'], product[0]])
-        with open("./IMG09142789.jpg", "rb") as bc:
-            await message.reply_photo(bc.read(), caption="Название: " + product[1]
-                                        + "\nСостав: " + str(product[4])
-                                        + "\nКкал: " + str(product[2])
-                                        + "\nСкидка: " + str(product[3]), reply_markup=inline_client_keyboard)
-        # await message.reply_photo(product[5])
-        # await message.reply("Название: " + product[1]
-        #                      + "\nСостав: " + str(product[4])
-        #                      + "\nКкал: " + str(product[2])
-        #                      + "\nСкидка: " + str(product[3]), reply_markup=inline_client_keyboard)
+        with open(product[5], "rb") as bc:
+            await message.answer_photo(bc.read(), caption=product[1]
+                                        + "\n" + str(product[6])
+                                        + "\nКкал: " + str(product[3])
+                                        + "\nСкидка: " + str(product[4]) + "%"
+                                        + "\nЦена:" + str(product[2]) + " руб.", reply_markup=inline_client_keyboard)
         await menu.next()
     
 
@@ -88,22 +90,86 @@ async def order_step_3(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     if callback_query.data == "add":
         
+        # Добавление товара
         old_order_list = data["order_list"]
         cur_menu = data["cur_product"][0]
         cur_product_id = data["cur_product"][1]
         old_order_list[cur_menu].append(cur_product_id)
-        
         await state.update_data(order_list=old_order_list)
-        print(old_order_list)
-        await bot.send_message(callback_query.from_user.id, 'Вы добавили товар', reply_markup=data["cur_menu_kb"])
+        
+        order_message = "Ваша корзина:\n"
+        final_price = 0
+        for key in data["order_list"].keys():
+            if data["order_list"][key] != []:
+                for el in data["order_list"][key]:
+                    cursor.execute(f"SELECT Name,Price FROM {key} WHERE id = {el}")
+                    product = cursor.fetchone()
+                    final_price += product[1]
+                    order_message += product[0] + " - " + str(product[1]) + " руб.\n"
+        order_message += "Итого: " + str(final_price) + " руб."
+        
+        await bot.send_message(callback_query.from_user.id, f'Вы добавили товар\n\n{order_message}', reply_markup=data["cur_menu_kb"])
         await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
         await menu.order_step_1.set()
     else:
-        await bot.send_message(callback_query.from_user.id, 'Как вы могли не добавить товар(((', reply_markup=data["cur_menu_kb"])
+        await bot.send_message(callback_query.from_user.id, 'Жаль что вы не добавили товар(((', reply_markup=data["cur_menu_kb"])
         await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
         await menu.order_step_1.set()
+        
+        
+# Функция обработчик выбора --- редактировать ли заказ
+async def order_edit(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    if message.text == "Да":
+        keyboard = create_inline_kb(data["order_list"])
+        await message.answer("Выберите что вы хотите убрать", reply_markup=keyboard)
+        await menu.next()
+    elif message.text == "Нет":
+        # Формирование сообщения с корзиной
+        order_message = "Ваша корзина:\n"
+        final_price = 0
+        for key in data["order_list"].keys():
+            if data["order_list"][key] != []:
+                for el in data["order_list"][key]:
+                    cursor.execute(f"SELECT Name,Price FROM {key} WHERE id = {el}")
+                    product = cursor.fetchone()
+                    final_price += product[1]
+                    order_message += product[0] + " - " + str(product[1]) + " руб.\n"
+        order_message += "Итого: " + str(final_price) + " руб."
+        
+        await message.answer( order_message + "\n\n" + "Вы уверены что хотите оформить заказ?", reply_markup=final_kb)
+        await menu.order_final_step.set()
+        
+    elif message.text == "Вернуться назад":
+        await message.answer("Выберете меню", reply_markup=menus_keyboard)
+        await menu.input_order_is_start.set()
 
-    
+# Обработчик редактирования заказа
+async def order_edit_2(callback_query: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    arr = callback_query.data.split(":")
+    new_list = data["order_list"][arr[0]]
+    new_list.remove(int(arr[1]))
+    new_order_list = data["order_list"]
+    new_order_list[arr[0]] = new_list
+    await state.update_data(order_list=new_order_list)
+    await bot.send_message(
+            callback_query.from_user.id,
+            'Вы удалили товар, хотите еще что-нибудь изменить?',
+            reply_markup=danet_kb
+        )
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+    await menu.order_edit.set()
+
+async def order_final_step(message: types.Message, state: FSMContext):
+    if message.text == "Подтвердить":
+        await message.answer("Спасибо за заказ!", reply_markup=client_keyboard)
+        await state.finish()
+    elif message.text == "Вернуться назад":
+        await message.answer("Хотите что-нибудь изменить?", reply_markup=danet_kb)
+        await menu.order_edit.set()
+  
+# Регистрация функций   
 def client_handlers_register(dp : Dispatcher):
     dp.register_message_handler(
         command_start, 
@@ -112,5 +178,8 @@ def client_handlers_register(dp : Dispatcher):
     dp.register_message_handler(order_start)
     dp.register_message_handler(order_step_1, state=menu.input_order_is_start)
     dp.register_message_handler(order_step_2, state=menu.order_step_1)
+    dp.register_message_handler(order_edit, state=menu.order_edit)
+    dp.register_message_handler(order_final_step, state=menu.order_final_step)
     dp.register_callback_query_handler(order_step_3, state=menu.order_step_2, text=['add', 'notAdd'])
+    dp.register_callback_query_handler(order_edit_2, state=menu.order_edit_2)
     

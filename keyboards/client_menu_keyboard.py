@@ -6,8 +6,7 @@ def create_keyboard(arr):
     )
     for i in arr:
         menu_kb.insert(KeyboardButton(i[0]))
-    menu_kb.add(KeyboardButton('Другое меню'))
-    return menu_kb
+    return menu_kb.add(KeyboardButton('Другое меню')).add(KeyboardButton('Подтвердить'))
 
 
 btn_1 = KeyboardButton('Продолжить')
