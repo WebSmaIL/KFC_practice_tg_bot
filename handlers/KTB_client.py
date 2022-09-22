@@ -163,6 +163,26 @@ async def order_edit_2(callback_query: types.CallbackQuery, state: FSMContext):
 
 async def order_final_step(message: types.Message, state: FSMContext):
     if message.text == "Подтвердить":
+        data = await state.get_data()
+        user_id = message.from_user.id
+        def getStrOrder(arr):
+            strOrder=""
+            for i in arr:
+                strOrder+= str(i) + ","
+            if strOrder != "":
+                return strOrder[:-1]
+            else:
+                return "-1"
+        meat = getStrOrder(data["order_list"]["meat"])
+        drinks = getStrOrder(data["order_list"]["drinks"])
+        desserts = getStrOrder(data["order_list"]["desserts"])
+        potato = getStrOrder(data["order_list"]["potato"])
+        sauce = getStrOrder(data["order_list"]["sauce"])
+        burgers = getStrOrder(data["order_list"]["burgers"])
+
+        cursor.execute(f"INSERT INTO orders (user_id, drinks, burgers, potato, meat, desserts, sauce) VALUES ({user_id}, {drinks}, {burgers}, {potato}, {meat}, {desserts}, {sauce})")
+        conn.commit()
+        
         await message.answer("Спасибо за заказ!", reply_markup=client_keyboard)
         await state.finish()
     elif message.text == "Вернуться назад":
