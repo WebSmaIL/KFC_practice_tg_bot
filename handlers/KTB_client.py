@@ -180,7 +180,8 @@ async def order_final_step(message: types.Message, state: FSMContext):
         sauce = getStrOrder(data["order_list"]["sauce"])
         burgers = getStrOrder(data["order_list"]["burgers"])
 
-        cursor.execute(f"INSERT INTO orders (user_id, drinks, burgers, potato, meat, desserts, sauce) VALUES ({user_id}, {drinks}, {burgers}, {potato}, {meat}, {desserts}, {sauce})")
+        # print(user_id, drinks, burgers, potato, meat, desserts, sauce)
+        cursor.execute(f"INSERT INTO orders (user_id, drinks, burgers, potato, meat, desserts, sauce) VALUES (?,?,?,?,?,?,?)", (user_id, drinks, burgers, potato, meat, desserts, sauce))
         conn.commit()
         
         await message.answer("Спасибо за заказ!", reply_markup=client_keyboard)
