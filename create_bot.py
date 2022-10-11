@@ -10,5 +10,14 @@ storage = MemoryStorage()
 bot = Bot(token=os.getenv('TOKEN'))
 dp = Dispatcher(bot, storage=storage)
 
+kb_menus={
+    "Напитки":"drinks",
+    "Бургеры":"burgers",
+    "Картошка":"potato",
+    "Мясо":"meat",
+    "Десерты":"desserts",
+    "Соусы":"sauce"
+}
+
 conn = sqlite3.connect('test_base.db')
 cursor = conn.cursor()

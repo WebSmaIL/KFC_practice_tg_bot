@@ -11,4 +11,4 @@ menus_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-menus_keyboard.row(btn_1, btn_2, btn_3, btn_4, btn_5, btn_6).row(KeyboardButton('Выход'))
+menus_keyboard.row(btn_1, btn_2, btn_3).row(btn_4, btn_5, btn_6).row(KeyboardButton('Выход'))

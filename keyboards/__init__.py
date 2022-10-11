@@ -7,3 +7,4 @@ from keyboards.client_inline_kb import inline_client_keyboard
 from keyboards.danet_kb import danet_kb
 from keyboards.edit_inline_kb import create_inline_kb
 from keyboards.final_client_kb import final_kb
+from keyboards.admin_edit_kb import admin_edit_keyboard

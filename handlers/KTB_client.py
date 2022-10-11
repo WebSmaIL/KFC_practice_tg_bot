@@ -1,4 +1,4 @@
-from create_bot import cursor, conn, bot
+from create_bot import cursor, conn, bot, kb_menus
 from aiogram import types, Dispatcher
 from aiogram.dispatcher.filters import Filter, Command
 from keyboards import client_keyboard, danet_kb, final_kb, menus_keyboard, create_keyboard, order_keyboard_1, admin_keyboard, inline_client_keyboard
@@ -10,14 +10,7 @@ from keyboards.edit_inline_kb import create_inline_kb
 
 
 
-kb_menus = {
-    "Напитки": "drinks",
-    "Бургеры": "burgers",
-    "Картофельные блюда" : "potato",
-    "Мясные блюда": "meat",
-    "Десерты": "desserts",
-    "Соусы": "sauce",
-}
+
 
 async def command_start(message: types.Message):
     await message.reply("Приветствуем вас в кифасике!", reply_markup=client_keyboard)
@@ -109,21 +102,28 @@ async def order_step_3(callback_query: types.CallbackQuery, state: FSMContext):
         order_message += "Итого: " + str(final_price) + " руб."
         
         await bot.send_message(callback_query.from_user.id, f'Вы добавили товар\n\n{order_message}', reply_markup=data["cur_menu_kb"])
-        await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-        await menu.order_step_1.set()
     else:
         await bot.send_message(callback_query.from_user.id, 'Жаль что вы не добавили товар(((', reply_markup=data["cur_menu_kb"])
-        await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
-        await menu.order_step_1.set()
+    await bot.delete_message(chat_id=callback_query.from_user.id, message_id=callback_query.message.message_id)
+    await menu.order_step_1.set()
         
         
 # Функция обработчик выбора --- редактировать ли заказ
 async def order_edit(message: types.Message, state: FSMContext):
     data = await state.get_data()
     if message.text == "Да":
-        keyboard = create_inline_kb(data["order_list"])
-        await message.answer("Выберите что вы хотите убрать", reply_markup=keyboard)
-        await menu.next()
+        accept = True
+        for item in data["order_list"]:
+            if item:
+                accept = False
+        
+        if accept:
+            keyboard = create_inline_kb(data["order_list"])
+            await message.answer("Выберите что вы хотите убрать", reply_markup=keyboard)
+            await menu.next()
+        else:
+            await message.answer("У вас пустой заказ сука", reply_markup=danet_kb)
+            
     elif message.text == "Нет":
         # Формирование сообщения с корзиной
         order_message = "Ваша корзина:\n"
