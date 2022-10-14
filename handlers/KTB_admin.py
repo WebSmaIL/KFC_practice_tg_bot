@@ -37,7 +37,7 @@ async def login_step_2(message: types.Message, state: FSMContext):
     # Сохраняем введенный пароль в state
     await state.update_data(password=message.text)
     data = await state.get_data()
-    cursor.execute("SELECT * FROM admins WHERE priority = 1")
+    cursor.execute("SELECT * FROM admins")
     admin = cursor.fetchone()
     # Проверка есть ли такой пользователь в БД
     if data["login"] in admin[2]:
@@ -62,9 +62,7 @@ async def edit_menu_step_2(message: types.Message, state: FSMContext):
 
 async def add_photo(message: types.Message, state: FSMContext):
     file_info = await bot.get_file(message.photo[-1].file_id)
-    await message.photo[-1].download(file_info.file_path.split('handlers/')[1])
-    
-    await message.answer("Фото успешно скачано!")
+    await message.photo[-1].download(destination_file=file_info.file_path.split('photos/')[1])
 
 
 def admin_handlers_register(dp : Dispatcher):
@@ -76,4 +74,4 @@ def admin_handlers_register(dp : Dispatcher):
     dp.register_message_handler(login_step_2, state=login.login_step_1)
     dp.register_message_handler(edit_menu, state=login.edit_menu)
     dp.register_message_handler(edit_menu_step_2, state=login.edit_menu_step_2)
-    dp.register_message_handler(add_photo, state=login.add_photo)
+    dp.register_message_handler(add_photo, state=login.add_photo, content_types=['photo'])
